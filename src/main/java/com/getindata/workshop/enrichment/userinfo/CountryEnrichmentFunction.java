@@ -13,8 +13,8 @@ import org.apache.flink.util.OutputTag;
 public class CountryEnrichmentFunction
         extends KeyedCoProcessFunction<Integer, SongEventAvro, UserCdcEvent, EnrichedSongEvent> {
 
-    public static final OutputTag<SongEventAvro> UNMATCHED_SONGS =
-            new OutputTag<>("unmatched-songs", TypeInformation.of(SongEventAvro.class));
+    public static final OutputTag<SongEventAvro> UNMATCHED_EVENTS =
+            new OutputTag<>("unmatched-events", TypeInformation.of(SongEventAvro.class));
 
     private transient ValueState<String> countryState;
 
@@ -41,7 +41,7 @@ public class CountryEnrichmentFunction
                     )
             );
         } else {
-            context.output(UNMATCHED_SONGS, event);
+            context.output(UNMATCHED_EVENTS, event);
         }
     }
 

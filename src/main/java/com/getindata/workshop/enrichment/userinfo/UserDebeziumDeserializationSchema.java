@@ -19,14 +19,23 @@ public class UserDebeziumDeserializationSchema implements DebeziumDeserializatio
     public void deserialize(SourceRecord sourceRecord, Collector<UserCdcEvent> collector) {
         LOG.info("Received CDC event: {}", sourceRecord);
         Struct value = (Struct) sourceRecord.value();
+
+        Struct source = value.getStruct("source");
+        long timestamp = source.getInt64("ts_ms");
+
         UserCdcEvent.Operation operation = getOperation(value.getString("op"));
-        long timestamp = value.getInt64("ts_ms");
-        Struct after = (Struct) value.get("after");
-        Integer id = after.getInt32("id");
-        String firstName = after.getString("first_name");
-        String lastName = after.getString("last_name");
-        String country = after.getString("country");
-        collector.collect(new UserCdcEvent(operation, timestamp, id, firstName, lastName, country));
+        if (operation == UserCdcEvent.Operation.DELETE) {
+            Struct before = value.getStruct("before");
+            Integer id = before.getInt32("id");
+            collector.collect(new UserCdcEvent(operation, timestamp, id, null, null, null));
+        } else {
+            Struct after = value.getStruct("after");
+            Integer id = after.getInt32("id");
+            String firstName = after.getString("first_name");
+            String lastName = after.getString("last_name");
+            String country = after.getString("country");
+            collector.collect(new UserCdcEvent(operation, timestamp, id, firstName, lastName, country));
+        }
     }
 
     private UserCdcEvent.Operation getOperation(String operation) {

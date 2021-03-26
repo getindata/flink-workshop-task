@@ -17,9 +17,9 @@ public class GenerationJobAvro {
                 .addSource(new SongsSource())
                 .addSink(
                         new FlinkKafkaProducer<>(
-                                KafkaProperties.SONGS_TOPIC,
+                                KafkaProperties.EVENTS_TOPIC,
                                 new KafkaSerializationSchemaWrapper<>(
-                                        KafkaProperties.SONGS_TOPIC,
+                                        KafkaProperties.EVENTS_TOPIC,
                                         null,
                                         false,
                                         ConfluentRegistryAvroSerializationSchema.forSpecific(

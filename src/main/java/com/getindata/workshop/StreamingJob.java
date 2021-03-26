@@ -69,7 +69,7 @@ public class StreamingJob {
         final DataStream<UserCdcEvent> usersMetadata = env.addSource(getUserMetadataSource())
                 .assignTimestampsAndWatermarks(
                         WatermarkStrategy
-                                .<UserCdcEvent>forBoundedOutOfOrderness(Duration.ofMinutes(1L))
+                                .<UserCdcEvent>forMonotonousTimestamps()
                                 .withTimestampAssigner(new TimestampAssignerSupplier<UserCdcEvent>() {
                                     @Override
                                     public TimestampAssigner<UserCdcEvent> createTimestampAssigner(Context context) {
@@ -89,7 +89,7 @@ public class StreamingJob {
                 .process(new CountryEnrichmentFunction());
 
         DataStream<SongEventAvro> unmatchedEvents = enrichedEvents
-                .getSideOutput(CountryEnrichmentFunction.UNMATCHED_SONGS);
+                .getSideOutput(CountryEnrichmentFunction.UNMATCHED_EVENTS);
 
         SingleOutputStreamOperator<SongRanking> rawTopSongs = enrichedEvents
                 .filter((FilterFunction<EnrichedSongEvent>) enrichedSongEvent -> enrichedSongEvent.getCountry().equals("Poland"))
@@ -111,7 +111,7 @@ public class StreamingJob {
 
     private static FlinkKafkaConsumerBase<SongEventAvro> getKafkaEventsSource() {
         return new FlinkKafkaConsumer<>(
-                KafkaProperties.SONGS_TOPIC,
+                KafkaProperties.EVENTS_TOPIC,
                 ConfluentRegistryAvroDeserializationSchema.forSpecific(
                         SongEventAvro.class,
                         KafkaProperties.SCHEMA_REGISTRY_URL),
