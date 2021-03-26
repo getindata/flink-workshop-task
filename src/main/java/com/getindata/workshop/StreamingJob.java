@@ -36,6 +36,7 @@ import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.functions.AggregateFunction;
 import org.apache.flink.api.common.functions.FilterFunction;
 import org.apache.flink.api.java.functions.KeySelector;
+import org.apache.flink.contrib.streaming.state.RocksDBStateBackend;
 import org.apache.flink.formats.avro.registry.confluent.ConfluentRegistryAvroDeserializationSchema;
 import org.apache.flink.streaming.api.datastream.AsyncDataStream;
 import org.apache.flink.streaming.api.datastream.DataStream;
@@ -61,9 +62,13 @@ import java.util.concurrent.TimeUnit;
 import static java.util.stream.Collectors.toList;
 
 public class StreamingJob {
+    private static final int CHECKPOINT_INTERVAL_MS = 60 * 1_000;
+    private static final String ROCKSDB_STATE_BACKEND_ROOT = "s3://rocksdb/checkpoints";
 
     public static void main(String[] args) throws Exception {
         final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        env.enableCheckpointing(CHECKPOINT_INTERVAL_MS);
+        env.setStateBackend(new RocksDBStateBackend(ROCKSDB_STATE_BACKEND_ROOT));
 
         final DataStream<SongEventAvro> events = env.addSource(getKafkaEventsSource());
         final DataStream<UserCdcEvent> usersMetadata = env.addSource(getUserMetadataSource())
