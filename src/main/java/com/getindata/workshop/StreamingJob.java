@@ -30,6 +30,9 @@ import com.getindata.workshop.kafka.KafkaProperties;
 import com.getindata.workshop.model.SongEventAvro;
 import com.getindata.workshop.ranking.SongRanking;
 import com.getindata.workshop.ranking.SongRankingItem;
+import org.apache.flink.api.common.eventtime.TimestampAssigner;
+import org.apache.flink.api.common.eventtime.TimestampAssignerSupplier;
+import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.functions.AggregateFunction;
 import org.apache.flink.api.common.functions.FilterFunction;
 import org.apache.flink.api.java.functions.KeySelector;
@@ -45,9 +48,11 @@ import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindo
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer;
+import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumerBase;
 import org.apache.flink.util.Collector;
 import org.apache.flink.util.IterableUtils;
 
+import java.time.Duration;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
@@ -61,7 +66,17 @@ public class StreamingJob {
         final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 
         final DataStream<SongEventAvro> events = env.addSource(getKafkaEventsSource());
-        final DataStream<UserCdcEvent> usersMetadata = env.addSource(getUserMetadataSource());
+        final DataStream<UserCdcEvent> usersMetadata = env.addSource(getUserMetadataSource())
+                .assignTimestampsAndWatermarks(
+                        WatermarkStrategy
+                                .<UserCdcEvent>forBoundedOutOfOrderness(Duration.ofMinutes(1L))
+                                .withTimestampAssigner(new TimestampAssignerSupplier<UserCdcEvent>() {
+                                    @Override
+                                    public TimestampAssigner<UserCdcEvent> createTimestampAssigner(Context context) {
+                                        return (userCdcEvent, l) -> Long.MAX_VALUE - 1;
+                                    }
+                                })
+                );
 
         KeyedStream<SongEventAvro, Integer> keyedEvents = events
                 .keyBy((KeySelector<SongEventAvro, Integer>) SongEventAvro::getUserId);
@@ -79,9 +94,9 @@ public class StreamingJob {
         SingleOutputStreamOperator<SongRanking> rawTopSongs = enrichedEvents
                 .filter((FilterFunction<EnrichedSongEvent>) enrichedSongEvent -> enrichedSongEvent.getCountry().equals("Poland"))
                 .keyBy((KeySelector<EnrichedSongEvent, Long>) EnrichedSongEvent::getSongId)
-                .window(TumblingEventTimeWindows.of(Time.hours(1L)))
+                .window(TumblingEventTimeWindows.of(Time.minutes(1L)))
                 .aggregate(new SongAggregationFunction(), new SongWindowFunction())
-                .windowAll(TumblingEventTimeWindows.of(Time.hours(1L)))
+                .windowAll(TumblingEventTimeWindows.of(Time.minutes(1L)))
                 .process(new SelectTopSongs());
 
         SingleOutputStreamOperator<SongRanking> enrichedRanking =
@@ -94,13 +109,22 @@ public class StreamingJob {
         env.execute("Top Songs ranking");
     }
 
-    private static FlinkKafkaConsumer<SongEventAvro> getKafkaEventsSource() {
+    private static FlinkKafkaConsumerBase<SongEventAvro> getKafkaEventsSource() {
         return new FlinkKafkaConsumer<>(
                 KafkaProperties.SONGS_TOPIC,
                 ConfluentRegistryAvroDeserializationSchema.forSpecific(
                         SongEventAvro.class,
                         KafkaProperties.SCHEMA_REGISTRY_URL),
                 KafkaProperties.getKafkaProperties()
+        ).assignTimestampsAndWatermarks(
+                WatermarkStrategy
+                        .<SongEventAvro>forBoundedOutOfOrderness(Duration.ofMinutes(3L))
+                        .withTimestampAssigner(new TimestampAssignerSupplier<SongEventAvro>() {
+                            @Override
+                            public TimestampAssigner<SongEventAvro> createTimestampAssigner(Context context) {
+                                return (songEventAvro, l) -> songEventAvro.getTimestamp();
+                            }
+                        })
         );
     }
 

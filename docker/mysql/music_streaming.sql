@@ -40,5 +40,5 @@ VALUES (default, "Harry", "Kane", "Great Britain"),
        (default, "Hugo", "Lloris", "France"),
        (default, "Manuel", "Neuer", "Germany"),
        (default, "Marco", "Reus", "Germany"),
-       (default, "Serio", "Ramos", "Spain"),
+       (default, "Sergio", "Ramos", "Spain"),
        (default, "Thiago", "Alcantara", "Spain");

@@ -27,7 +27,7 @@ public class AsyncSongTableRequest extends RichAsyncFunction<SongRanking, SongRa
 
     @Override
     public void open(Configuration parameters) throws Exception {
-        Class.forName("com.mysql.jdbc.Driver");
+        Class.forName("com.mysql.cj.jdbc.Driver");
         this.conn = DriverManager.getConnection("jdbc:mysql://mysql:3306/music_streaming", "mysqluser", "mysqlpw");
     }
 
@@ -69,7 +69,7 @@ public class AsyncSongTableRequest extends RichAsyncFunction<SongRanking, SongRa
                 statement.setLong(1, item.getSongId());
                 ResultSet rs = statement.executeQuery();
                 if (rs.next()) {
-                    LOG.warn("Song ID matched; ID={}.", item.getSongId());
+                    LOG.debug("Song ID matched; ID={}.", item.getSongId());
                     String title = rs.getString(1);
                     String author = rs.getString(2);
                     return new SongRankingItem(

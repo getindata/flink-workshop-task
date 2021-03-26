@@ -7,13 +7,15 @@ public class UserCdcEvent {
     public enum Operation {SNAPSHOT, INSERT, UPDATE, DELETE}
 
     private Operation operation;
+    private long timestamp;
     private int id;
     private String firstName;
     private String lastName;
     private String country;
 
-    public UserCdcEvent(Operation operation, int id, String firstName, String lastName, String country) {
+    public UserCdcEvent(Operation operation, long timestamp, int id, String firstName, String lastName, String country) {
         this.operation = operation;
+        this.timestamp = timestamp;
         this.id = id;
         this.firstName = firstName;
         this.lastName = lastName;
@@ -26,6 +28,14 @@ public class UserCdcEvent {
 
     public void setOperation(Operation operation) {
         this.operation = operation;
+    }
+
+    public long getTimestamp() {
+        return timestamp;
+    }
+
+    public void setTimestamp(long timestamp) {
+        this.timestamp = timestamp;
     }
 
     public int getId() {
@@ -65,7 +75,8 @@ public class UserCdcEvent {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         UserCdcEvent that = (UserCdcEvent) o;
-        return id == that.id &&
+        return timestamp == that.timestamp &&
+                id == that.id &&
                 operation == that.operation &&
                 Objects.equals(firstName, that.firstName) &&
                 Objects.equals(lastName, that.lastName) &&
@@ -74,13 +85,14 @@ public class UserCdcEvent {
 
     @Override
     public int hashCode() {
-        return Objects.hash(operation, id, firstName, lastName, country);
+        return Objects.hash(operation, timestamp, id, firstName, lastName, country);
     }
 
     @Override
     public String toString() {
         return "UserCdcEvent{" +
                 "operation=" + operation +
+                ", timestamp=" + timestamp +
                 ", id=" + id +
                 ", firstName='" + firstName + '\'' +
                 ", lastName='" + lastName + '\'' +
