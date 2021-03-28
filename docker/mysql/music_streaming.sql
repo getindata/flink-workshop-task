@@ -12,14 +12,14 @@ CREATE TABLE songs (
 ALTER TABLE songs AUTO_INCREMENT = 1;
 
 INSERT INTO songs
-VALUES (default, "The Beatles", "Yellow Submarine"),
-       (default, "The Rolling Stones", "Get Off Of My Cloud"),
+VALUES (default, "The Beatles", "Yesterday"),
+       (default, "The Rolling Stones", "Paint It Black"),
        (default, "The Rolling Stones", "Let It Bleed"),
        (default, "Abba", "Dancing Queen"),
        (default, "Adele", "Rolling in the Deep"),
-       (default, "Queen", "Killer Queen"),
+       (default, "Queen", "I want it all"),
        (default, "Katy Perry", "California Gurls"),
-       (default, "Tori Amos", "Silent All These Years"),
+       (default, "Pink Floyd", "High Hopes"),
        (default, "Queen", "Bohemian Rhapsody"),
        (default, "Queen", "I want to break free");
 

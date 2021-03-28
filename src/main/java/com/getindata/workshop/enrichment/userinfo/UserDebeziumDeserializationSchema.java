@@ -2,6 +2,7 @@ package com.getindata.workshop.enrichment.userinfo;
 
 import com.alibaba.ververica.cdc.debezium.DebeziumDeserializationSchema;
 import com.getindata.workshop.enrichment.songinfo.AsyncSongTableRequest;
+import com.getindata.workshop.enrichment.userinfo.UserCdcEvent.Operation;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.util.Collector;
 import org.apache.kafka.connect.data.Struct;
@@ -23,8 +24,8 @@ public class UserDebeziumDeserializationSchema implements DebeziumDeserializatio
         Struct source = value.getStruct("source");
         long timestamp = source.getInt64("ts_ms");
 
-        UserCdcEvent.Operation operation = getOperation(value.getString("op"));
-        if (operation == UserCdcEvent.Operation.DELETE) {
+        Operation operation = Operation.getOperation(value.getString("op"));
+        if (operation == Operation.DELETE) {
             Struct before = value.getStruct("before");
             Integer id = before.getInt32("id");
             collector.collect(new UserCdcEvent(operation, timestamp, id, null, null, null));
@@ -35,21 +36,6 @@ public class UserDebeziumDeserializationSchema implements DebeziumDeserializatio
             String lastName = after.getString("last_name");
             String country = after.getString("country");
             collector.collect(new UserCdcEvent(operation, timestamp, id, firstName, lastName, country));
-        }
-    }
-
-    private UserCdcEvent.Operation getOperation(String operation) {
-        switch (operation) {
-            case "c":
-                return UserCdcEvent.Operation.INSERT;
-            case "d":
-                return UserCdcEvent.Operation.DELETE;
-            case "u":
-                return UserCdcEvent.Operation.UPDATE;
-            case "r":
-                return UserCdcEvent.Operation.SNAPSHOT;
-            default:
-                throw new IllegalArgumentException(format("Unknown operation %s.", operation));
         }
     }
 

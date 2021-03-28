@@ -2,9 +2,28 @@ package com.getindata.workshop.enrichment.userinfo;
 
 import java.util.Objects;
 
+import static java.lang.String.format;
+
 public class UserCdcEvent {
 
-    public enum Operation {SNAPSHOT, INSERT, UPDATE, DELETE}
+    public enum Operation {
+        SNAPSHOT, INSERT, UPDATE, DELETE;
+
+        public static Operation getOperation(String operation) {
+            switch (operation) {
+                case "c":
+                    return UserCdcEvent.Operation.INSERT;
+                case "d":
+                    return UserCdcEvent.Operation.DELETE;
+                case "u":
+                    return UserCdcEvent.Operation.UPDATE;
+                case "r":
+                    return UserCdcEvent.Operation.SNAPSHOT;
+                default:
+                    throw new IllegalArgumentException(format("Unknown operation %s.", operation));
+            }
+        }
+    }
 
     private Operation operation;
     private long timestamp;
