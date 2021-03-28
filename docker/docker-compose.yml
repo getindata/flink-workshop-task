@@ -1,0 +1,82 @@
+---
+
+version: '3'
+services:
+  zookeeper:
+    image: wurstmeister/zookeeper:3.4.6
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: wurstmeister/kafka:2.12-2.4.0
+    ports:
+      - "9092:9092"
+    environment:
+      HOSTNAME_COMMAND: "route -n | awk '/UG[ \t]/{print $$2}'"
+      KAFKA_ADVERTISED_HOST_NAME: kafka
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_CREATE_TOPICS: "events:1:1"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  jobmanager:
+    image: flink:1.12.1-scala_2.11-java8
+    expose:
+      - "6123"
+    ports:
+      - "8081:8081"
+    command: jobmanager
+    environment:
+      - JOB_MANAGER_RPC_ADDRESS=jobmanager
+
+  taskmanager:
+    image: flink:1.12.1-scala_2.11-java8
+    expose:
+      - "6121"
+      - "6122"
+    depends_on:
+      - jobmanager
+    command: taskmanager
+    links:
+      - "jobmanager:jobmanager"
+    environment:
+      - JOB_MANAGER_RPC_ADDRESS=jobmanager
+
+  schema-registry:
+    image: confluentinc/cp-schema-registry:6.0.1
+    ports:
+      - "8082:8082"
+    expose:
+      - "8082"
+    links:
+      - "kafka:kafka"
+      - "zookeeper:zookeeper"
+    environment:
+      - SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS=kafka:9092
+      - SCHEMA_REGISTRY_HOST_NAME=schema-registry
+      - SCHEMA_REGISTRY_LISTENERS=http://0.0.0.0:8082
+      - SCHEMA_REGISTRY_ACCESS_CONTROL_ALLOW_METHODS=GET,POST,PUT,OPTIONS
+      - SCHEMA_REGISTRY_ACCESS_CONTROL_ALLOW_ORIGIN='*'
+
+  schema-registry-ui:
+    image: landoop/schema-registry-ui
+    ports:
+      - "8000:8000"
+    links:
+      - "schema-registry:schema-registry"
+    depends_on:
+      - schema-registry
+    environment:
+      SCHEMAREGISTRY_URL: http://schema-registry:8082/
+      PROXY: "true"
+
+  mysql:
+    build:
+      context: ./mysql/
+    ports:
+      - 3306:3306
+    environment:
+      - MYSQL_ROOT_PASSWORD=debezium
+      - MYSQL_USER=mysqluser
+      - MYSQL_PASSWORD=mysqlpw
