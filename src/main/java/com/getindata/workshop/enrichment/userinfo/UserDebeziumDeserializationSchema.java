@@ -1,7 +1,6 @@
 package com.getindata.workshop.enrichment.userinfo;
 
 import com.alibaba.ververica.cdc.debezium.DebeziumDeserializationSchema;
-import com.getindata.workshop.enrichment.songinfo.AsyncSongTableRequest;
 import com.getindata.workshop.enrichment.userinfo.UserCdcEvent.Operation;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.util.Collector;
@@ -10,11 +9,9 @@ import org.apache.kafka.connect.source.SourceRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static java.lang.String.format;
-
 public class UserDebeziumDeserializationSchema implements DebeziumDeserializationSchema<UserCdcEvent> {
 
-    private static final Logger LOG = LoggerFactory.getLogger(AsyncSongTableRequest.class);
+    private static final Logger LOG = LoggerFactory.getLogger(UserDebeziumDeserializationSchema.class);
 
     @Override
     public void deserialize(SourceRecord sourceRecord, Collector<UserCdcEvent> collector) {
