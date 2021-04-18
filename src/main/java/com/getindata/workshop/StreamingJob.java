@@ -76,7 +76,7 @@ public class StreamingJob {
                                         return (userCdcEvent, l) -> Long.MAX_VALUE - 1;
                                     }
                                 })
-                );
+                ).uid("kafka-source");
 
         KeyedStream<SongEventAvro, Integer> keyedEvents = events
                 .keyBy((KeySelector<SongEventAvro, Integer>) SongEventAvro::getUserId);
@@ -86,7 +86,8 @@ public class StreamingJob {
 
         SingleOutputStreamOperator<EnrichedSongEvent> enrichedEvents = keyedEvents
                 .connect(keyedUserMetadata)
-                .process(new CountryEnrichmentFunction());
+                .process(new CountryEnrichmentFunction())
+                .uid("country-enrichment");
 
         DataStream<SongEventAvro> unmatchedEvents = enrichedEvents
                 .getSideOutput(CountryEnrichmentFunction.UNMATCHED_EVENTS);
@@ -96,11 +97,14 @@ public class StreamingJob {
                 .keyBy((KeySelector<EnrichedSongEvent, Long>) EnrichedSongEvent::getSongId)
                 .window(TumblingEventTimeWindows.of(Time.minutes(1L)))
                 .aggregate(new SongAggregationFunction(), new SongWindowFunction())
+                .uid("song-aggregation")
                 .windowAll(TumblingEventTimeWindows.of(Time.minutes(1L)))
-                .process(new SelectTopSongs());
+                .process(new SelectTopSongs())
+                .uid("ranking-aggregation");
 
         SingleOutputStreamOperator<SongRanking> enrichedRanking =
-                AsyncDataStream.unorderedWait(rawTopSongs, new AsyncSongTableRequest(), 5_000L, TimeUnit.MILLISECONDS);
+                AsyncDataStream.unorderedWait(rawTopSongs, new AsyncSongTableRequest(), 5_000L, TimeUnit.MILLISECONDS)
+                .uid("song-enrichment");
 
         enrichedRanking
                 .filter(Objects::nonNull)
